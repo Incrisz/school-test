@@ -41,10 +41,28 @@ return new class extends Migration
             }
 
             if (Schema::hasColumn('assessment_components', 'subject_id')) {
-                $table->dropForeign(['subject_id']);
+                if ($this->hasForeignKey('assessment_components', 'assessment_components_subject_id_foreign')) {
+                    $table->dropForeign(['subject_id']);
+                }
                 $table->dropColumn('subject_id');
             }
         });
+    }
+
+    private function hasForeignKey(string $table, string $keyName): bool
+    {
+        $schema = Schema::getConnection()->getDatabaseName();
+
+        $result = Schema::getConnection()->selectOne('
+            SELECT 1
+            FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = ?
+              AND TABLE_NAME = ?
+              AND CONSTRAINT_NAME = ?
+            LIMIT 1
+        ', [$schema, $table, $keyName]);
+
+        return $result !== null;
     }
 
     private function hasIndex(string $table, string $index): bool
